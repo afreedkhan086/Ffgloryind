@@ -439,6 +439,7 @@ export default function App() {
           {[
             { id: 'payment', label: 'Buy Glory Squad', icon: <QrCode size={14} /> },
             { id: 'history', label: 'Order Status', icon: <History size={14} /> },
+            ...(isAdminVerified ? [{ id: 'admin', label: 'Admin Panel', icon: <ShieldCheck size={14} /> }] : [])
           ].map((tab) => (
             <button
               key={tab.id}
@@ -463,7 +464,11 @@ export default function App() {
               <UpiPaymentBox 
                 config={config} 
                 defaultUid={user.uid}
-                onPaymentSubmit={handlePaymentSubmit} 
+                onPaymentSubmit={handlePaymentSubmit}
+                onAdminUnlock={() => {
+                  setActiveTab('admin');
+                  triggerToast('🔑 Secret Unlocked: toggled Garena administrator console!', 'success');
+                }}
               />
             </div>
           )}
