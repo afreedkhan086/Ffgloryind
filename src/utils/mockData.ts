@@ -44,6 +44,7 @@ export const INITIAL_CONFIG: SystemConfig = {
   pricePerCreditPremium: 150,
   liveActiveBotsOverlay: 312,
   adminTelegram: 'ffglory_admin_bot',
+  adminPasscode: 'admin123',
   
   // Default API configuration mapping
   masterOwnerId: 'glory_master',

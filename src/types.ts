@@ -54,6 +54,7 @@ export interface SystemConfig {
   pricePerCreditPremium: number; // e.g. 150 INR
   liveActiveBotsOverlay: number; // Simulated total active system-wide bots
   adminTelegram: string;
+  adminPasscode?: string;
   
   // Custom Master Administrator API configuration
   masterOwnerId?: string;

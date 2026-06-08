@@ -12,7 +12,9 @@ import {
   Lock,
   LogOut,
   Volume2,
-  VolumeX
+  VolumeX,
+  ShieldCheck,
+  Chrome
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppUser, PaymentRequest, SystemConfig } from './types';
@@ -24,8 +26,20 @@ import {
 import UpiPaymentBox from './components/UpiPaymentBox';
 import AdminPanel from './components/AdminPanel';
 
+// Firebase imports
+import { auth, db, googleProvider, signInWithPopup, signOut } from './services/firebase';
+import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  query, 
+  orderBy 
+} from 'firebase/firestore';
+
 export default function App() {
-  // --- Core Persistent State Loaded from Local Storage ---
+  // --- Core Persistent State Loaded from Local Storage & Sync via Firebase ---
   const [user, setUser] = useState<AppUser>(() => {
     const saved = localStorage.getItem('ffglory_user');
     return saved ? JSON.parse(saved) : INITIAL_USER;
@@ -41,11 +55,15 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_CONFIG;
   });
 
+  // --- Firebase User authentication state ---
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+
   // --- Portal Authentication & User DB Management states ---
   const [isAdminVerified, setIsAdminVerified] = useState<boolean>(() => {
     return localStorage.getItem('ffglory_admin_verified') === 'true';
   });
 
+  // Keep admin verification token synced
   useEffect(() => {
     localStorage.setItem('ffglory_admin_verified', isAdminVerified ? 'true' : 'false');
   }, [isAdminVerified]);
@@ -56,7 +74,7 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [systemClock, setSystemClock] = useState('');
 
-  // Synchronize state with localStorage
+  // Local Storage backups
   useEffect(() => {
     localStorage.setItem('ffglory_user', JSON.stringify(user));
   }, [user]);
@@ -68,6 +86,61 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('ffglory_config', JSON.stringify(config));
   }, [config]);
+
+  // Firebase Auth Observer
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+      setFirebaseUser(authUser);
+      
+      if (authUser && authUser.email === 'afreedkhan1299@gmail.com') {
+        setIsAdminVerified(true);
+        triggerToast(`Welcome back, Admin ${authUser.displayName || ''}!`, 'success');
+      } else {
+        // Only discard verify if we don't have a legacy passcode session active
+        if (authUser && authUser.email !== 'afreedkhan1299@gmail.com') {
+          setIsAdminVerified(false);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // --- FIRESTORE REAL-TIME SYNCHRONIZERS ---
+  
+  // 1. Sync global system config
+  useEffect(() => {
+    const configDocRef = doc(db, 'config', 'global');
+    const unsubscribe = onSnapshot(configDocRef, (snap) => {
+      if (snap.exists()) {
+        const cloudConfig = snap.data() as SystemConfig;
+        setConfig(cloudConfig);
+      } else {
+        // First-run seed initializer
+        setDoc(configDocRef, INITIAL_CONFIG)
+          .catch(err => console.warn('Could not seed initial config in Firestore:', err));
+      }
+    }, (error) => {
+      console.warn("Unable to fetch real-time cloud configs (operating in offline fallback mode):", error);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Sync active order collections
+  useEffect(() => {
+    const paymentsQuery = query(collection(db, 'payments'), orderBy('timestamp', 'desc'));
+    const unsubscribe = onSnapshot(paymentsQuery, (snap) => {
+      const list: PaymentRequest[] = [];
+      snap.forEach((docSnap) => {
+        list.push(docSnap.data() as PaymentRequest);
+      });
+      if (list.length > 0) {
+        setPayments(list);
+      }
+    }, (error) => {
+      console.warn("Unable to connect to real-time sync engine (local cache active):", error);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Clock Ticker Effect
   useEffect(() => {
@@ -103,7 +176,6 @@ export default function App() {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, text, type }]);
     
-    // Play sound matching frequency
     if (type === 'success') playBeep(880, 'triangle', 0.12);
     else if (type === 'error') playBeep(220, 'sawtooth', 0.15);
     else playBeep(440, 'sine', 0.08);
@@ -113,8 +185,8 @@ export default function App() {
     }, 4500);
   };
 
-  // --- Deposit Payment Submissions ---
-  const handlePaymentSubmit = (
+  // --- Deposit Payment Submissions (creates record dynamically in Firestore) ---
+  const handlePaymentSubmit = async (
     amount: number, 
     creditType: 'basic' | 'premium', 
     quantity: number, 
@@ -122,8 +194,9 @@ export default function App() {
     base64Image: string,
     targetUid: string
   ) => {
+    const txnId = 'TXN' + Math.floor(10000 + Math.random() * 90000).toString();
     const newTxn: PaymentRequest = {
-      id: 'TXN' + Math.floor(10000 + Math.random() * 90000).toString(),
+      id: txnId,
       userId: user.id,
       userUID: targetUid,
       amount: amount,
@@ -135,26 +208,39 @@ export default function App() {
       proofImage: base64Image
     };
 
-    setPayments(prev => [newTxn, ...prev]);
-    triggerToast(`📋 Order Submitted! Processing UTR: ${utr} for UID: ${targetUid}.`, 'success');
+    try {
+      await setDoc(doc(db, 'payments', txnId), newTxn);
+      triggerToast(`📋 Live Order Dispatched! UTR logged: ${utr}.`, 'success');
+    } catch (err) {
+      console.error("Firestore push error, falling back locally:", err);
+      setPayments(prev => [newTxn, ...prev]);
+      triggerToast(`📋 Local Order Saved (Offline Node Active).`, 'info');
+    }
     setActiveTab('history');
   };
 
   // --- Admin Operations Handlers ---
-  const handleApprovePayment = (paymentId: string) => {
+  const handleApprovePayment = async (paymentId: string) => {
     const targPay = payments.find(p => p.id === paymentId);
     if (!targPay) return;
 
     const quantity = targPay.creditsQuantity;
+    const updatePayload = {
+      ...targPay,
+      status: 'approved',
+      adminComment: `Verified via bank settlement statement. Deployed ${quantity} squads for FF UID: ${targPay.userUID}!`
+    };
 
-    // Approve status
-    setPayments(prev => prev.map(p => p.id === paymentId ? { 
-      ...p, 
-      status: 'approved', 
-      adminComment: `Verified via banking statement. Successfully deployed ${quantity} squads for target UID: ${targPay.userUID}!` 
-    } : p));
-    
-    // Update active user credits (representing unused squad slots if any)
+    try {
+      await setDoc(doc(db, 'payments', paymentId), updatePayload);
+      triggerToast(`✅ Sync approved & deployed for UID: ${targPay.userUID}!`, 'success');
+    } catch (err) {
+      console.error(err);
+      setPayments(prev => prev.map(p => p.id === paymentId ? updatePayload : p));
+      triggerToast(`✅ (Offline) Approved local copy.`, 'info');
+    }
+
+    // Update active user credits (local representation of synced squads list if applicable)
     setUser(prev => {
       if (targPay.userId.toLowerCase() === prev.id.toLowerCase()) {
         return {
@@ -164,17 +250,38 @@ export default function App() {
       }
       return prev;
     });
-
-    triggerToast(`✅ Payment approved & ${quantity} Squads deployed for UID: ${targPay.userUID}!`, 'success');
   };
 
-  const handleRejectPayment = (paymentId: string, comment: string) => {
-    setPayments(prev => prev.map(p => p.id === paymentId ? { 
-      ...p, 
-      status: 'rejected', 
-      adminComment: comment || 'UTR verification failed. Please upload a valid payment proof.' 
-    } : p));
-    triggerToast(`❌ Payment request ${paymentId} rejected.`, 'error');
+  const handleRejectPayment = async (paymentId: string, comment: string) => {
+    const targPay = payments.find(p => p.id === paymentId);
+    if (!targPay) return;
+
+    const finalComment = comment || 'UTR verification failed. Please upload a valid payment proof.';
+    const updatePayload = {
+      ...targPay,
+      status: 'rejected',
+      adminComment: finalComment
+    };
+
+    try {
+      await setDoc(doc(db, 'payments', paymentId), updatePayload);
+      triggerToast(`❌ Rejected receipt logs for order ID: ${paymentId}.`, 'error');
+    } catch (err) {
+      console.error(err);
+      setPayments(prev => prev.map(p => p.id === paymentId ? updatePayload : p));
+    }
+  };
+
+  const handleUpdateConfig = async (newConfig: SystemConfig) => {
+    try {
+      await setDoc(doc(db, 'config', 'global'), newConfig);
+      setConfig(newConfig);
+      triggerToast(`🔧 Live Settings successfully unified on cloud!`, 'success');
+    } catch (err) {
+      console.error(err);
+      setConfig(newConfig);
+      triggerToast(`🔧 Config saved locally (Offline mode)`, 'info');
+    }
   };
 
   const handleManualUpdateUserCredits = (basic: number) => {
@@ -185,10 +292,11 @@ export default function App() {
     triggerToast(`🔧 Synchronized account squad balances!`, 'success');
   };
 
-  const handleLaunchMockPaymentAndUplink = () => {
+  const handleLaunchMockPaymentAndUplink = async () => {
     const mockUtr = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+    const mockId = 'TXN' + Math.floor(10000 + Math.random() * 90000).toString();
     const mockTxn: PaymentRequest = {
-      id: 'TXN' + Math.floor(10000 + Math.random() * 90000).toString(),
+      id: mockId,
       userId: 'guest_gamer99',
       userUID: '984120358',
       amount: 400,
@@ -199,8 +307,41 @@ export default function App() {
       timestamp: new Date().toISOString(),
       proofImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?q=80&w=300&auto=format&fit=crop'
     };
-    setPayments(prev => [mockTxn, ...prev]);
-    triggerToast(`🔧 Populated test customer deposit request under UTR: ${mockUtr}`, 'info');
+
+    try {
+      await setDoc(doc(db, 'payments', mockId), mockTxn);
+      triggerToast(`🔧 Populated test customer deposit request`, 'info');
+    } catch (err) {
+      console.error(err);
+      setPayments(prev => [mockTxn, ...prev]);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const userEmail = result.user.email;
+      if (userEmail === 'afreedkhan1299@gmail.com') {
+        setIsAdminVerified(true);
+        triggerToast('Garena Administrator Authenticated!', 'success');
+      } else {
+        triggerToast('Unauthorized Email Address.', 'error');
+      }
+    } catch (err) {
+      console.error("Firebase Sign in failed", err);
+      const message = err instanceof Error ? err.message : 'Verification process cancelled';
+      triggerToast(`Login Error: ${message}`, 'error');
+    }
+  };
+
+  const handleGoogleSignOut = async () => {
+    try {
+      await signOut(auth);
+      setIsAdminVerified(false);
+      triggerToast('Administrator Logged Out securely.', 'info');
+    } catch (err) {
+      console.error("Sign out fail", err);
+    }
   };
 
   return (
@@ -212,7 +353,7 @@ export default function App() {
 
       {/* Global Live Bar Ticker/Announcement Header */}
       {config.isLive && (
-        <div id="announcement-marquee-bar" className="w-full bg-gradient-to-r from-amber-600 to-amber-800 transition-all text-neutral-950 py-2 px-6 flex items-center justify-between gap-3 relative z-40 select-none overflow-hidden font-display shadow-lg">
+        <div id="announcement-marquee-bar" className="w-full bg-gradient-to-r from-amber-600 to-amber-800 transition-all text-neutral-950 py-2 px-6 flex items-center justify-between gap-3 relative z-40 select-none overflow-hidden font-display shadow-lg w-full">
           <div className="flex items-center gap-2 overflow-hidden flex-1">
             <Flame size={14} className="animate-bounce flex-shrink-0 text-black fill-black" />
             <div className="relative overflow-hidden h-5 w-full">
@@ -253,31 +394,26 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quiet admin access key toggle */}
           <div className="flex items-center gap-2">
             <button
               id="header-admin-toggle-btn"
               onClick={() => setActiveTab(activeTab === 'admin' ? 'payment' : 'admin')}
               className={`p-3 px-4 rounded-2xl text-xs font-bold tracking-tight transition-all uppercase flex items-center gap-1.5 border cursor-pointer ${
                 activeTab === 'admin' 
-                  ? 'bg-amber-500 text-neutral-950 border-amber-400 shadow-md' 
-                  : 'bg-neutral-900/60 hover:bg-neutral-850 border-neutral-800 text-neutral-400'
+                  ? 'bg-amber-500 text-neutral-950 border-amber-400 shadow-md font-bold' 
+                  : 'bg-neutral-900/60 hover:bg-neutral-850 border-neutral-800 text-neutral-400 font-bold'
               }`}
             >
               <Database size={13} />
-              {isAdminVerified ? 'Admin Mode' : 'Staff Access'}
+              {isAdminVerified ? 'Admin Config' : 'Staff Access'}
             </button>
 
             {isAdminVerified && (
               <button
                 id="lock-admin-shortcut"
-                onClick={() => {
-                  setIsAdminVerified(false);
-                  setActiveTab('payment');
-                  triggerToast('Admin panel locked.', 'info');
-                }}
+                onClick={handleGoogleSignOut}
                 className="p-3 bg-red-950/20 hover:bg-red-950/40 border border-red-900 text-red-400 rounded-2xl text-xs font-black uppercase transition-all cursor-pointer"
-                title="Lock Admin Control Room"
+                title="Lock Controls & Log Out"
               >
                 <LogOut size={13} />
               </button>
@@ -298,7 +434,7 @@ export default function App() {
               className={`flex-1 min-w-[130px] px-3 py-2 rounded-xl text-[11px] font-black tracking-tight transition-all uppercase flex items-center justify-center gap-1.5 cursor-pointer ${
                 activeTab === tab.id
                   ? 'bg-amber-500 text-neutral-950 border border-amber-400 font-bold'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/50 font-bold'
               }`}
             >
               {tab.icon}
@@ -339,7 +475,7 @@ export default function App() {
                   {payments.map((p) => (
                     <div 
                       key={p.id}
-                      className="p-4 bg-neutral-950 rounded-2xl border border-neutral-850 flex flex-wrap items-center justify-between gap-4"
+                      className="p-4 bg-neutral-950 rounded-2xl border border-neutral-850 flex flex-wrap items-center justify-between gap-4 animate-fade-in"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -398,51 +534,102 @@ export default function App() {
                   <Lock className="text-amber-400 w-5 h-5 animate-pulse" />
                 </div>
                 <div className="space-y-1.5">
-                  <h3 className="text-base font-bold text-white font-display uppercase tracking-tight">Admin Block</h3>
+                  <h3 className="text-base font-bold text-white font-display uppercase tracking-tight">Admin Gate</h3>
                   <p className="text-xs text-neutral-400 leading-relaxed font-sans">
-                    Please authorize your administrator passcode key to review deployments:
+                    Log in with Firebase Google Account credentials to access deployment dashboards.
                   </p>
                 </div>
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const inputPass = (document.getElementById('admin-key-pass') as HTMLInputElement)?.value;
-                    if (inputPass === 'admin123') {
-                      setIsAdminVerified(true);
-                      triggerToast('Access granted!', 'success');
-                    } else {
-                      triggerToast('Access denied.', 'error');
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <input
-                    id="admin-key-pass"
-                    type="password"
-                    placeholder="Enter Private key... (try admin123)"
-                    required
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3.5 text-xs text-center font-mono text-white outline-none focus:border-amber-500/50 transition-all font-bold placeholder:text-neutral-700"
-                  />
+
+                <div className="space-y-4">
+                  {/* Firebase Sign-In with Google */}
                   <button
-                    type="submit"
-                    className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-black uppercase tracking-widest font-display shadow-md transition-all cursor-pointer font-bold"
+                    onClick={handleGoogleSignIn}
+                    className="w-full py-4 rounded-2xl bg-white text-black hover:bg-neutral-100 text-xs font-black uppercase tracking-wider font-display shadow-md transition-all cursor-pointer flex items-center justify-center gap-2.5 font-bold"
                   >
-                    Unlock
+                    <Chrome size={16} className="text-red-500" />
+                    Sign in with Google Account
                   </button>
-                </form>
+
+                  <div className="flex items-center justify-between text-[10px] text-neutral-500 uppercase tracking-widest pt-2">
+                    <span className="border-b border-neutral-800 flex-1"></span>
+                    <span className="px-3 select-none">Or use backup pass</span>
+                    <span className="border-b border-neutral-800 flex-1"></span>
+                  </div>
+
+                  {/* Traditional fallback code key form */}
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const inputPass = (document.getElementById('admin-key-pass') as HTMLInputElement)?.value;
+                      if (inputPass === (config.adminPasscode || 'admin123')) {
+                        setIsAdminVerified(true);
+                        triggerToast('Access granted via local passcode!', 'success');
+                      } else {
+                        triggerToast('Incorrect local passcode key.', 'error');
+                      }
+                    }}
+                    className="space-y-3"
+                  >
+                    <input
+                      id="admin-key-pass"
+                      type="password"
+                      placeholder="Enter backup passcode key..."
+                      required
+                      className="w-full bg-neutral-950 border border-neutral-850 rounded-2xl px-4 py-3 text-xs text-center font-mono text-white outline-none focus:border-amber-500/50 transition-all font-bold placeholder:text-neutral-700 font-sans"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full py-3 rounded-2xl bg-neutral-900 border border-neutral-800 hover:bg-neutral-850 text-neutral-300 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer"
+                    >
+                      Authenticate Backup
+                    </button>
+                  </form>
+                </div>
+
+                {firebaseUser && firebaseUser.email !== 'afreedkhan1299@gmail.com' && (
+                  <div className="pt-2">
+                    <p className="text-[11px] text-red-400 font-bold bg-red-500/5 p-3 rounded-xl border border-red-500/10">
+                      ⚠️ Signed as <span className="font-mono">{firebaseUser.email}</span> but is unauthorized! Admins must sign in with: <br /><b>afreedkhan1299@gmail.com</b>
+                    </p>
+                    <button 
+                      onClick={handleGoogleSignOut} 
+                      className="text-[9px] uppercase tracking-widest text-neutral-400 hover:text-white underline block mx-auto mt-2 cursor-pointer font-bold"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              <AdminPanel
-                config={config}
-                onUpdateConfig={setConfig}
-                payments={payments}
-                onApprovePayment={handleApprovePayment}
-                onRejectPayment={handleRejectPayment}
-                user={user}
-                onManualUpdateUserCredits={handleManualUpdateUserCredits}
-                onInjectGlory={() => triggerToast('Inject bypassed', 'info')}
-                onLaunchMockPayment={handleLaunchMockPaymentAndUplink}
-              />
+              <div className="space-y-4">
+                {/* Admin user status banner */}
+                <div className="flex items-center justify-between bg-neutral-900/60 border border-neutral-850 rounded-2xl p-4 px-5">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck size={16} className="text-emerald-400" />
+                    <span className="text-xs font-medium text-neutral-300">
+                      Active Garena Administrator Session: <strong className="text-white font-mono">{firebaseUser ? firebaseUser.email : 'Local Session Bypass'}</strong>
+                    </span>
+                  </div>
+                  <button 
+                    onClick={handleGoogleSignOut}
+                    className="text-[9px] uppercase tracking-wider font-bold bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 px-3 py-1.5 rounded-lg transition-all cursor-pointer"
+                  >
+                    Logout System
+                  </button>
+                </div>
+
+                <AdminPanel
+                  config={config}
+                  onUpdateConfig={handleUpdateConfig}
+                  payments={payments}
+                  onApprovePayment={handleApprovePayment}
+                  onRejectPayment={handleRejectPayment}
+                  user={user}
+                  onManualUpdateUserCredits={handleManualUpdateUserCredits}
+                  onInjectGlory={() => triggerToast('Inject bypassed', 'info')}
+                  onLaunchMockPayment={handleLaunchMockPaymentAndUplink}
+                />
+              </div>
             )
           )}
         </div>

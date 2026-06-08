@@ -48,6 +48,7 @@ export default function AdminPanel({
   const [botsOverlay, setBotsOverlay] = useState(config.liveActiveBotsOverlay);
   const [telegram, setTelegram] = useState(config.adminTelegram);
   const [qrCodeUrl, setQrCodeUrl] = useState(config.qrCodeUrl || '');
+  const [adminPasscode, setAdminPasscode] = useState(config.adminPasscode || 'admin123');
 
   // User credit custom overrides (Squad slots)
   const [customBasic, setCustomBasic] = useState(user.basicCredits);
@@ -68,6 +69,7 @@ export default function AdminPanel({
       liveActiveBotsOverlay: botsOverlay,
       adminTelegram: telegram,
       qrCodeUrl,
+      adminPasscode,
     });
   };
 
@@ -204,6 +206,24 @@ export default function AdminPanel({
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Private Admin Passcode */}
+              <div className="space-y-1 bg-red-500/5 p-3 rounded-2xl border border-red-500/10">
+                <label className="text-[10px] font-bold text-red-450 uppercase tracking-wider block flex items-center gap-1">
+                  <span>🔒 Change Admin Passcode</span>
+                </label>
+                <input
+                  id="admin-private-passcode"
+                  type="text"
+                  value={adminPasscode}
+                  onChange={(e) => setAdminPasscode(e.target.value)}
+                  placeholder="Enter custom passcode"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-red-500/30 font-bold"
+                />
+                <p className="text-[9px] text-neutral-500 leading-normal mt-0.5">
+                  Change this password to lock the Staff Access section with a brand-new secret key. Keep it secure!
+                </p>
               </div>
 
               {/* Live bots overlay indicator */}

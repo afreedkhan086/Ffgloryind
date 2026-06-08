@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "PaymentRequest": {
+      "title": "PaymentRequest",
+      "description": "Represents a user payment transaction to buy squad glory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userUID": { "type": "string" },
+        "amount": { "type": "number" },
+        "creditType": { "type": "string" },
+        "creditsQuantity": { "type": "number" },
+        "utr": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "proofImage": { "type": "string" },
+        "adminComment": { "type": "string" }
+      },
+      "required": ["id", "userId", "userUID", "amount", "creditsQuantity", "utr", "status", "timestamp"]
+    },
+    "SystemConfig": {
+      "title": "SystemConfig",
+      "description": "System-wide global parameters.",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "upiId": { "type": "string" },
+        "announcement": { "type": "string" },
+        "qrCodeUrl": { "type": "string" },
+        "adminPasscode": { "type": "string" },
+        "isLive": { "type": "boolean" },
+        "liveActiveBotsOverlay": { "type": "number" },
+        "adminTelegram": { "type": "string" }
+      },
+      "required": ["siteName", "upiId", "isLive"]
+    }
+  },
+  "firestore": {
+    "/payments/{paymentId}": {
+      "schema": "PaymentRequest",
+      "description": "Historic or active payment verification entries."
+    },
+    "/config/global": {
+      "schema": "SystemConfig",
+      "description": "Static singleton site-wide global configurations."
+    }
+  }
+}

@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Catch-all Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && 
+             request.auth.token.email == "afreedkhan1299@gmail.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Config global document safety rules
+    match /config/global {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Payments safety rules
+    match /payments/{paymentId} {
+      // Free Fire players register deposit receipts without custom user sign-up accounts
+      allow create: if isValidId(paymentId) &&
+                    request.resource.data.id == paymentId &&
+                    request.resource.data.amount is number &&
+                    request.resource.data.amount > 0 &&
+                    request.resource.data.utr is string &&
+                    request.resource.data.utr.size() >= 10 &&
+                    request.resource.data.utr.size() <= 20 &&
+                    request.resource.data.userUID is string &&
+                    request.resource.data.userUID.size() >= 5;
+
+      // Anyone can query/read to track their order status matching their own device payments
+      allow read: if true;
+
+      // Only Authorized System Administrators can update status or reject/comments
+      allow update, delete: if isAdmin();
+    }
+  }
+}
