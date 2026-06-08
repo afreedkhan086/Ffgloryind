@@ -24,7 +24,6 @@ import {
 } from './utils/mockData';
 import UpiPaymentBox from './components/UpiPaymentBox';
 import AdminPanel from './components/AdminPanel';
-import AutoUplinkTerminal from './components/AutoUplinkTerminal';
 
 // Firebase imports
 import { auth, db, googleProvider, signInWithPopup, signOut } from './services/firebase';
@@ -524,56 +523,50 @@ export default function App() {
                   {payments.map((p) => (
                     <div 
                       key={p.id}
-                      className="p-4 bg-neutral-950 rounded-2xl border border-neutral-850 flex flex-col gap-4 animate-fade-in"
+                      className="p-4 bg-neutral-950 rounded-2xl border border-neutral-850 flex flex-wrap items-center justify-between gap-4 animate-fade-in"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-neutral-350 font-mono uppercase bg-neutral-900 border border-neutral-800 px-2.5 py-0.5 rounded">
-                              {p.id}
-                            </span>
-                            <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/10">
-                              {p.creditsQuantity} Squads Package
-                            </span>
-                          </div>
-                          <p className="text-xs text-neutral-400">
-                            Target UID: <strong className="text-amber-400 font-mono text-sm font-black">{p.userUID}</strong> &bull; Amount Paid: <strong className="text-neutral-200 font-mono">₹{p.amount}</strong>
-                          </p>
-                          <p className="text-[11px] text-neutral-500">
-                            UTR ID: <strong className="text-neutral-400 font-mono">{p.utr}</strong>
-                          </p>
-                          {p.adminComment && (
-                            <p className="text-[11px] bg-neutral-900 p-2.5 rounded-xl text-neutral-400 max-w-md border border-neutral-800 leading-normal font-sans mt-2">
-                              📝 <strong className="text-neutral-300">Update Note:</strong> {p.adminComment}
-                            </p>
-                          )}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-neutral-350 font-mono uppercase bg-neutral-900 border border-neutral-800 px-2.5 py-0.5 rounded">
+                            {p.id}
+                          </span>
+                          <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/10">
+                            {p.creditsQuantity} Squads Package
+                          </span>
                         </div>
-
-                        <div className="text-right flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-xs text-neutral-450 font-mono">{new Date(p.timestamp).toLocaleDateString()}</p>
-                            <p className="text-[10px] text-neutral-600 font-mono">{new Date(p.timestamp).toLocaleTimeString()}</p>
-                          </div>
-
-                          {p.status === 'approved' ? (
-                            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono">
-                              Deployed Active
-                            </span>
-                          ) : p.status === 'rejected' ? (
-                            <span className="bg-red-500/10 text-red-505 border border-red-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono">
-                              Rejected
-                            </span>
-                          ) : (
-                            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono animate-pulse">
-                              Pending Audit
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Target UID: <strong className="text-amber-400 font-mono text-sm font-black">{p.userUID}</strong> &bull; Amount Paid: <strong className="text-neutral-200 font-mono">₹{p.amount}</strong>
+                        </p>
+                        <p className="text-[11px] text-neutral-500">
+                          UTR ID: <strong className="text-neutral-400 font-mono">{p.utr}</strong>
+                        </p>
+                        {p.adminComment && (
+                          <p className="text-[11px] bg-neutral-900 p-2.5 rounded-xl text-neutral-400 max-w-md border border-neutral-800 leading-normal font-sans mt-2">
+                            📝 <strong className="text-neutral-300">Update Note:</strong> {p.adminComment}
+                          </p>
+                        )}
                       </div>
 
-                      {p.status === 'approved' && (
-                        <AutoUplinkTerminal payment={p} config={config} />
-                      )}
+                      <div className="text-right flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs text-neutral-450 font-mono">{new Date(p.timestamp).toLocaleDateString()}</p>
+                          <p className="text-[10px] text-neutral-600 font-mono">{new Date(p.timestamp).toLocaleTimeString()}</p>
+                        </div>
+
+                        {p.status === 'approved' ? (
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono">
+                            Deployed Active
+                          </span>
+                        ) : p.status === 'rejected' ? (
+                          <span className="bg-red-500/10 text-red-505 border border-red-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono">
+                            Rejected
+                          </span>
+                        ) : (
+                          <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-xl px-3 py-1.5 text-xs font-bold uppercase font-mono animate-pulse">
+                            Pending Audit
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
