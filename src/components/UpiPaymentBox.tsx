@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Info,
   Award,
-  Globe
+  Globe,
+  Lock
 } from 'lucide-react';
 
 interface UpiPaymentBoxProps {
@@ -162,17 +163,22 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
                   <button
                     key={idx}
                     type="button"
+                    disabled={config.isLive === false}
                     onClick={() => {
-                      setSelectedPackIdx(idx);
-                      setStatusMsg({ type: '', text: '' });
+                      if (config.isLive !== false) {
+                        setSelectedPackIdx(idx);
+                        setStatusMsg({ type: '', text: '' });
+                      }
                     }}
-                    className={`p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between h-24 cursor-pointer relative overflow-hidden ${
-                      isSelected 
-                        ? 'bg-amber-500/10 border-amber-500 shadow-md shadow-amber-500/5' 
-                        : 'bg-neutral-950/60 border-neutral-850 hover:bg-neutral-950 hover:border-neutral-750'
+                    className={`p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between h-24 relative overflow-hidden ${
+                      config.isLive === false
+                        ? 'bg-neutral-950/30 border-neutral-900/60 opacity-40 cursor-not-allowed'
+                        : isSelected 
+                          ? 'bg-amber-500/10 border-amber-500 shadow-md shadow-amber-500/5 cursor-pointer' 
+                          : 'bg-neutral-950/60 border-neutral-850 hover:bg-neutral-950 hover:border-neutral-750 cursor-pointer'
                     }`}
                   >
-                    {isSelected && (
+                    {isSelected && config.isLive !== false && (
                       <div className="absolute top-0 right-0 bg-amber-500 text-neutral-950 text-[8px] font-black uppercase px-2 py-0.5 rounded-bl">
                         Selected
                       </div>
@@ -368,7 +374,32 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 font-bold"></span>
           </div>
 
-          {config.qrCodeAvailable !== false ? (
+          {config.isLive === false ? (
+            <div className="text-center space-y-5 w-full py-8 animate-fade-in">
+              <div className="flex justify-center items-center gap-1.5 text-[10px] font-bold text-red-500 uppercase tracking-widest select-none bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full mx-auto w-fit">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                SYSTEM OFFLINE
+              </div>
+
+              <div className="w-20 h-20 bg-red-500/5 border border-red-500/20 rounded-3xl flex items-center justify-center mx-auto text-red-400 shadow-lg shadow-red-500/5">
+                <Lock size={32} className="animate-pulse" />
+              </div>
+
+              <div className="space-y-2 bg-neutral-900 border border-neutral-850 p-4 rounded-2xl text-center">
+                <p className="text-[11px] text-neutral-200 leading-relaxed font-sans font-bold uppercase tracking-wider">
+                  Booking Suspended
+                </p>
+                <p className="text-[10px] text-neutral-500 leading-relaxed font-sans">
+                  The automatic lobby deployment queues are currently suspended for maintenance. QR code has been safely disabled on this network node.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 py-1 select-none">
+                <ShieldCheck className="text-neutral-700 w-4 h-4" />
+                <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest leading-none">FFGlory Autopilot Air-Gapped</span>
+              </div>
+            </div>
+          ) : config.qrCodeAvailable !== false ? (
             <div className="text-center space-y-4 w-full animate-fade-in">
               <div className="flex justify-center items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest select-none">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

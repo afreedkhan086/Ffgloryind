@@ -381,7 +381,7 @@ export default function App() {
       <div className="fixed bottom-0 left-[-150px] w-[600px] h-[600px] bg-neutral-900/10 rounded-full blur-[160px] pointer-events-none z-0"></div>
 
       {/* Global Live Bar Ticker/Announcement Header */}
-      {config.isLive && (
+      {config.isLive ? (
         <div id="announcement-marquee-bar" className="w-full bg-gradient-to-r from-amber-600 to-amber-800 transition-all text-neutral-950 py-2 px-6 flex items-center justify-between gap-3 relative z-40 select-none overflow-hidden font-display shadow-lg w-full">
           <div className="flex items-center gap-2 overflow-hidden flex-1">
             <Flame size={14} className="animate-bounce flex-shrink-0 text-black fill-black" />
@@ -400,6 +400,30 @@ export default function App() {
             {soundEnabled ? 'Beep On' : 'Beep Off'}
           </button>
         </div>
+      ) : (
+        <div id="announcement-marquee-bar" className="w-full bg-gradient-to-r from-red-650 to-red-850 text-white py-2 px-6 flex items-center justify-between gap-3 relative z-40 select-none overflow-hidden font-display shadow-lg border-b border-red-900/40">
+          <div className="flex items-center gap-2 overflow-hidden flex-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping flex-shrink-0" />
+            <div className="relative overflow-hidden h-5 w-full">
+              <div className="absolute whitespace-nowrap animate-marquee font-extrabold text-xs tracking-wide uppercase">
+                🚨 {config.announcement || 'SYSTEM IS CURRENTLY OFFLINE &bull; ALL BOOKINGS AND SQUAD DEPLOYMENTS SUSPENDED &bull; GARENA CLOUD CONNECT UNDER MAINTENANCE'} &bull; TIME: {systemClock}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setSoundEnabled(prev => !prev)}
+              className="flex-shrink-0 text-[10px] font-mono tracking-tight font-black uppercase bg-neutral-950 hover:bg-black border border-neutral-800 rounded px-3 py-1.5 text-white transition-all flex items-center gap-1 cursor-pointer"
+              title="Toggle alerts"
+            >
+              {soundEnabled ? <Volume2 size={11} /> : <VolumeX size={11} />}
+              {soundEnabled ? 'Beep On' : 'Beep Off'}
+            </button>
+            <span className="text-[9px] font-black uppercase bg-black/40 border border-red-500/20 px-2.5 py-1 rounded text-red-100 font-mono flex items-center gap-1 select-none">
+              Offline
+            </span>
+          </div>
+        </div>
       )}
 
       {/* Main Container */}
@@ -414,10 +438,17 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-black font-display tracking-tighter text-white uppercase">{config.siteName}</h1>
-                <span className="flex items-center gap-1 text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
-                  Online
-                </span>
+                {config.isLive ? (
+                  <span className="flex items-center gap-1 text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 animate-pulse">
+                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                    Online
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[9px] uppercase font-bold bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full border border-red-500/25 animate-pulse">
+                    <span className="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                    Offline
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-neutral-500 font-mono tracking-wide">Free Fire Indian Guild Glory Solution</p>
             </div>

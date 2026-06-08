@@ -36,11 +36,11 @@ export const INITIAL_USER: AppUser = {
 
 export const INITIAL_CONFIG: SystemConfig = {
   siteName: 'FFGlory Pro',
-  isLive: true,
-  announcement: '🔥 SECURE FREE FIRE GUILD GLORY SQUADS: 1 Squad (₹90) to 20 Squads (₹1300) package! Submit direct UPI payment, enter UID and correct UTR for instant Admin review & automatic slot deployment.',
+  isLive: false,
+  announcement: '🔥 SYSTEM SUSPENDED: Automatic registration and deployment pipelines are currently offline for maintenance. Payment services are suspended.',
   upiId: 'ffglory.pay@ybl',
   qrCodeUrl: '', // Will populate or generate beautifully
-  qrCodeAvailable: true,
+  qrCodeAvailable: false,
   pricePerCreditBasic: 90, // default base price for 1 squad
   pricePerCreditPremium: 150,
   liveActiveBotsOverlay: 312,
