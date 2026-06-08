@@ -8,7 +8,6 @@ import {
   History, 
   Flame,
   QrCode,
-  Database,
   Lock,
   LogOut,
   Volume2,
@@ -149,6 +148,32 @@ export default function App() {
       setSystemClock(d.toLocaleTimeString());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Keyboard Easter-Egg Sequence Tracker
+  useEffect(() => {
+    let typedBuffer = '';
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Only capture printable characters
+      if (e.key.length !== 1) return;
+      
+      typedBuffer += e.key;
+      // Truncate to save memory and avoid infinite growth
+      if (typedBuffer.length > 50) {
+        typedBuffer = typedBuffer.slice(-50);
+      }
+
+      const lowerVal = typedBuffer.toLowerCase();
+      // Match with and without space
+      if (lowerVal.endsWith('ff glory') || lowerVal.endsWith('ffglory')) {
+        setActiveTab(prev => prev === 'admin' ? 'payment' : 'admin');
+        triggerToast('🔑 Secret Unlocked: toggled Garena administrator console!', 'success');
+        typedBuffer = ''; // Reset buffer
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown, true);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true);
   }, []);
 
   // Triggers elegant custom sounds for visual feedback
@@ -395,27 +420,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              id="header-admin-toggle-btn"
-              onClick={() => setActiveTab(activeTab === 'admin' ? 'payment' : 'admin')}
-              className={`p-3 px-4 rounded-2xl text-xs font-bold tracking-tight transition-all uppercase flex items-center gap-1.5 border cursor-pointer ${
-                activeTab === 'admin' 
-                  ? 'bg-amber-500 text-neutral-950 border-amber-400 shadow-md font-bold' 
-                  : 'bg-neutral-900/60 hover:bg-neutral-850 border-neutral-800 text-neutral-400 font-bold'
-              }`}
-            >
-              <Database size={13} />
-              {isAdminVerified ? 'Admin Config' : 'Staff Access'}
-            </button>
-
             {isAdminVerified && (
               <button
                 id="lock-admin-shortcut"
                 onClick={handleGoogleSignOut}
-                className="p-3 bg-red-950/20 hover:bg-red-950/40 border border-red-900 text-red-400 rounded-2xl text-xs font-black uppercase transition-all cursor-pointer"
+                className="p-3 bg-red-950/20 hover:bg-red-950/40 border border-red-900 text-red-400 rounded-2xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-1.5"
                 title="Lock Controls & Log Out"
               >
                 <LogOut size={13} />
+                <span>Lock Console</span>
               </button>
             )}
           </div>
