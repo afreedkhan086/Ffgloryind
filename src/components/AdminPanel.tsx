@@ -15,7 +15,11 @@ import {
   Database,
   UserPlus,
   QrCode,
-  Upload
+  Upload,
+  Cpu,
+  Globe,
+  Key,
+  RefreshCw
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -44,11 +48,21 @@ export default function AdminPanel({
   // Configuration states
   const [siteName, setSiteName] = useState(config.siteName);
   const [upiId, setUpiId] = useState(config.upiId);
+  const [isLive, setIsLive] = useState(config.isLive !== false);
+  const [qrCodeAvailable, setQrCodeAvailable] = useState(config.qrCodeAvailable !== false);
   const [announcement, setAnnouncement] = useState(config.announcement);
   const [botsOverlay, setBotsOverlay] = useState(config.liveActiveBotsOverlay);
   const [telegram, setTelegram] = useState(config.adminTelegram);
   const [qrCodeUrl, setQrCodeUrl] = useState(config.qrCodeUrl || '');
   const [adminPasscode, setAdminPasscode] = useState(config.adminPasscode || 'admin123');
+
+  // ffglory.pro automation states
+  const [autoLaunchEnabled, setAutoLaunchEnabled] = useState(config.autoLaunchEnabled || false);
+  const [ffGloryUsername, setFfGloryUsername] = useState(config.ffGloryUsername || '');
+  const [ffGloryPassword, setFfGloryPassword] = useState(config.ffGloryPassword || '');
+  const [ffGloryAdminPass, setFfGloryAdminPass] = useState(config.ffGloryAdminPass || '');
+  const [ffGloryRegion, setFfGloryRegion] = useState(config.ffGloryRegion || 'India');
+  const [ffGloryPlan, setFfGloryPlan] = useState(config.ffGloryPlan || 'basic');
 
   // User credit custom overrides (Squad slots)
   const [customBasic, setCustomBasic] = useState(user.basicCredits);
@@ -70,6 +84,14 @@ export default function AdminPanel({
       adminTelegram: telegram,
       qrCodeUrl,
       adminPasscode,
+      isLive,
+      qrCodeAvailable,
+      autoLaunchEnabled,
+      ffGloryUsername,
+      ffGloryPassword,
+      ffGloryAdminPass,
+      ffGloryRegion,
+      ffGloryPlan,
     });
   };
 
@@ -238,6 +260,43 @@ export default function AdminPanel({
                 />
               </div>
 
+              {/* Toggles: System Mode & QR Code Status */}
+              <div className="grid grid-cols-2 gap-3.5 bg-neutral-950 p-3.5 rounded-2xl border border-neutral-850">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                    System Hub Mode
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsLive(!isLive)}
+                    className={`w-full py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                      isLive
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}
+                  >
+                    {isLive ? '🟢 ONLINE' : '🔴 OFFLINE'}
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                    UPI QR Code Status
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setQrCodeAvailable(!qrCodeAvailable)}
+                    className={`w-full py-2.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                      qrCodeAvailable
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                    }`}
+                  >
+                    {qrCodeAvailable ? '✅ Available' : '🚫 Not Available'}
+                  </button>
+                </div>
+              </div>
+
               {/* Announcement marquee banner */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-neutral-500 uppercase">Global Site Announcement Ticker</label>
@@ -259,6 +318,122 @@ export default function AdminPanel({
                 <Send size={12} /> Save Global Config
               </button>
             </form>
+          </div>
+
+          {/* ffglory.pro Automation Config Card */}
+          <div className="bg-neutral-900 border border-neutral-850 rounded-3xl p-5 shadow-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <Cpu size={16} className="text-amber-500 animate-pulse" /> ffglory.pro Autopilot
+              </h3>
+              <button
+                type="button"
+                onClick={() => setAutoLaunchEnabled(!autoLaunchEnabled)}
+                className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                  autoLaunchEnabled
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-sm'
+                    : 'bg-neutral-950 text-neutral-550 border-neutral-800'
+                }`}
+              >
+                {autoLaunchEnabled ? '● Active' : '○ Standby'}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-neutral-400 leading-relaxed font-sans">
+              Enter your <code className="text-amber-400 font-bold bg-neutral-950 px-1 py-0.5 rounded text-[10px]">ffglory.pro</code> operator dashboard credentials to trigger automatic real-time squad deployment on payment approval.
+            </p>
+
+            <div className="space-y-3.5 bg-neutral-950 p-4 rounded-2xl border border-neutral-850/50">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase flex items-center gap-1">
+                  <UserPlus size={10} className="text-amber-500/60" /> Account Username / Phone
+                </label>
+                <input
+                  type="text"
+                  value={ffGloryUsername}
+                  onChange={(e) => setFfGloryUsername(e.target.value)}
+                  placeholder="e.g. 9876543210"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/30"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase flex items-center gap-1">
+                  <Key size={10} className="text-amber-500/60" /> Account Password
+                </label>
+                <input
+                  type="password"
+                  value={ffGloryPassword}
+                  onChange={(e) => setFfGloryPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/30"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-neutral-500 uppercase flex items-center gap-1">
+                  <Key size={10} className="text-amber-500/60" /> ffglory.pro Sec-Pass (Admin PIN)
+                </label>
+                <input
+                  type="password"
+                  value={ffGloryAdminPass}
+                  onChange={(e) => setFfGloryAdminPass(e.target.value)}
+                  placeholder="e.g. 8832"
+                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/30 font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-550 uppercase flex items-center gap-1">
+                    <Globe size={10} className="text-amber-500/65" /> Server
+                  </label>
+                  <select
+                    value={ffGloryRegion}
+                    onChange={(e) => setFfGloryRegion(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 outline-none focus:border-amber-500/30 font-bold"
+                  >
+                    <option value="India">India 🇮🇳</option>
+                    <option value="Bangladesh">Bangladesh 🇧🇩</option>
+                    <option value="Nepal">Nepal 🇳🇵</option>
+                    <option value="Pakistan">Pakistan 🇵🇰</option>
+                    <option value="Europe">Europe 🇪🇺</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-neutral-555 uppercase flex items-center gap-1">
+                    Plan
+                  </label>
+                  <select
+                    value={ffGloryPlan}
+                    onChange={(e) => setFfGloryPlan(e.target.value)}
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-300 outline-none focus:border-amber-500/30 font-bold"
+                  >
+                    <option value="basic">Basic Plan (₹90)</option>
+                    <option value="premium">Premium Plan (₹150)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                onUpdateConfig({
+                  ...config,
+                  autoLaunchEnabled,
+                  ffGloryUsername,
+                  ffGloryPassword,
+                  ffGloryAdminPass,
+                  ffGloryRegion,
+                  ffGloryPlan,
+                });
+              }}
+              className="w-full py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/15 hover:border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer font-bold"
+            >
+              <RefreshCw size={11} /> Save Uplink Handshake
+            </button>
           </div>
 
           {/* Sandbox Helper Deck */}

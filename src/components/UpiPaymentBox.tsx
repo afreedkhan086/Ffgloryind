@@ -94,6 +94,11 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
     e.preventDefault();
     setStatusMsg({ type: '', text: '' });
 
+    if (config.isLive === false) {
+      setStatusMsg({ type: 'error', text: 'Booking queue is offline. Submissions are temporarily blocked.' });
+      return;
+    }
+
     if (!targetUid.trim()) {
       setStatusMsg({ type: 'error', text: 'Please enter the Free Fire UID!' });
       return;
@@ -204,8 +209,19 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
             {/* Verification Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               
+              {config.isLive === false && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs flex flex-col gap-1.5 animate-fade-in">
+                  <div className="flex items-center gap-2 font-black uppercase tracking-widest text-[10px] text-red-300">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Garena Sync Offline
+                  </div>
+                  <p className="text-neutral-405 leading-relaxed font-sans text-[11px]">
+                    Automatic pilot deployment queue is offline. Garena lobby simulation pipelines are currently undergoing scheduled upgrades. Payment submissions are temporarily disabled.
+                  </p>
+                </div>
+              )}
+
               {/* UID Field */}
-              <div className="space-y-1">
+              <div className={`space-y-1 ${config.isLive === false ? 'opacity-40 pointer-events-none' : ''}`}>
                 <label className="text-[10px] uppercase font-semibold text-neutral-450 tracking-wider flex items-center gap-1">
                   <Globe size={11} className="text-neutral-500" /> FREE FIRE GUILD / PLAYER UID (Target for Squads)
                 </label>
@@ -213,6 +229,7 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
                   id="target-squad-uid"
                   type="text"
                   required
+                  disabled={config.isLive === false}
                   value={targetUid}
                   onChange={(e) => setTargetUid(e.target.value.replace(/\D/g, ''))}
                   placeholder="e.g. 5561028471"
@@ -221,13 +238,14 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
               </div>
 
               {/* UPI Merchant VPA */}
-              <div className="space-y-1">
+              <div className={`space-y-1 ${config.isLive === false ? 'opacity-40 pointer-events-none' : ''}`}>
                 <label className="text-[10px] uppercase font-semibold text-neutral-450 tracking-wider">Target UPI VPA</label>
                 <div className="flex items-center justify-between p-3.5 bg-neutral-950 border border-neutral-850 rounded-2xl font-mono text-xs text-neutral-300 relative group">
                   <span id="target-upi-vpa-val">{config.upiId}</span>
                   <button
                     id="copy-upi-btn"
                     type="button"
+                    disabled={config.isLive === false}
                     onClick={handleCopyUpi}
                     className="p-1 px-3 bg-neutral-850 hover:bg-neutral-800 rounded-lg text-[10px] font-bold uppercase transition-all flex items-center gap-1 text-neutral-300"
                   >
@@ -245,28 +263,33 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
               </div>
 
               {/* UTR Input */}
-              <div className="space-y-1">
+              <div className={`space-y-1 ${config.isLive === false ? 'opacity-40 pointer-events-none' : ''}`}>
                 <label className="text-[10px] uppercase font-semibold text-neutral-450 tracking-wider">12-Digit UTR Transaction ID</label>
                 <input
                   id="utr-number-input"
                   type="text"
                   required
                   maxLength={12}
+                  disabled={config.isLive === false}
                   value={utrNumber}
                   onChange={(e) => setUtrNumber(e.target.value.replace(/\D/g, ''))}
                   placeholder="Paste the 12-digit UTR/UPI Ref No here..."
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3.5 text-xs font-mono text-neutral-100 outline-none focus:border-amber-500/50 transition-all placeholder:text-neutral-700"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3.5 text-xs font-mono text-neutral-100 outline-none focus:border-amber-500/50 transition-all placeholder:text-neutral-700 font-bold"
                 />
               </div>
 
               {/* Screenshot Upload dragging area */}
-              <div className="space-y-1">
+              <div className={`space-y-1 ${config.isLive === false ? 'opacity-40 pointer-events-none' : ''}`}>
                 <label className="text-[10px] uppercase font-semibold text-neutral-450 tracking-wider">Screenshot/Payment Receipt Photo</label>
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => {
+                    if (config.isLive !== false) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   className={`border-2 border-dashed rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px] relative overflow-hidden ${
                     dragOver 
                       ? 'border-amber-500 bg-amber-500/5' 
@@ -278,6 +301,7 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
                     ref={fileInputRef}
                     onChange={handleFileChange}
                     accept="image/*"
+                    disabled={config.isLive === false}
                     className="hidden"
                   />
                   {screenshotBase64 ? (
@@ -314,55 +338,92 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
               )}
 
               {/* Submit button */}
-              <button
-                id="submit-payment-btn"
-                type="submit"
-                className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-black uppercase tracking-widest font-display shadow-md shadow-amber-500/10 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-              >
-                Submit Squad Purchase & UTR
-                <ArrowRight size={13} />
-              </button>
+              {config.isLive === false ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full py-4 rounded-2xl bg-neutral-950 border border-neutral-850 text-neutral-600 text-xs font-black uppercase tracking-widest font-display flex items-center justify-center gap-2 cursor-not-allowed select-none hover:scale-100"
+                >
+                  🚫 Booking Pipeline Offline
+                </button>
+              ) : (
+                <button
+                  id="submit-payment-btn"
+                  type="submit"
+                  className="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-neutral-950 text-xs font-black uppercase tracking-widest font-display shadow-md shadow-amber-500/10 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Submit Squad Purchase & UTR
+                  <ArrowRight size={13} />
+                </button>
+              )}
             </form>
           </div>
         </div>
 
         {/* Right: QR Code Visual Board */}
-        <div className="lg:col-span-5 flex flex-col justify-center items-center bg-neutral-950 p-6 rounded-3xl border border-neutral-850 relative">
+        <div className="lg:col-span-5 flex flex-col justify-center items-center bg-neutral-950 p-6 rounded-3xl border border-neutral-850 relative min-h-[300px]">
           <div className="absolute top-0 right-0 p-3 flex gap-1 select-none">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 font-bold"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 font-bold"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 font-bold"></span>
           </div>
 
-          <div className="text-center space-y-4 w-full">
-            <div className="flex justify-center items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest select-none">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Secure UPI QR Generator
-            </div>
+          {config.qrCodeAvailable !== false ? (
+            <div className="text-center space-y-4 w-full animate-fade-in">
+              <div className="flex justify-center items-center gap-1.5 text-[10px] font-bold text-emerald-400 uppercase tracking-widest select-none">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Secure UPI QR Generator
+              </div>
 
-            <div className="bg-white p-3.5 rounded-2xl shadow-inner max-w-[200px] mx-auto border-2 border-amber-500/20">
-              <img 
-                src={qrCodeUrl} 
-                alt="UPI Deposit QR Code" 
-                referrerPolicy="no-referrer"
-                className="w-full aspect-square object-contain mx-auto select-none rounded-lg"
-              />
-            </div>
+              <div className="bg-white p-3.5 rounded-2xl shadow-inner max-w-[200px] mx-auto border-2 border-amber-500/20">
+                <img 
+                  src={qrCodeUrl} 
+                  alt="UPI Deposit QR Code" 
+                  referrerPolicy="no-referrer"
+                  className="w-full aspect-square object-contain mx-auto select-none rounded-lg"
+                />
+              </div>
 
-            <div className="space-y-1 bg-neutral-900 border border-neutral-850 p-3.5 rounded-2xl text-center">
-              <p className="text-[11px] text-neutral-450 leading-relaxed">
-                Scan with <strong className="text-neutral-300">GPay, PhonePe, Paytm or BHIM</strong> to pay exactly
-              </p>
-              <p className="text-base font-black text-white font-mono select-none">
-                ₹{totalInr} <span className="text-xs text-neutral-500 font-bold">INR</span>
-              </p>
-            </div>
+              <div className="space-y-1 bg-neutral-900 border border-neutral-850 p-3.5 rounded-2xl text-center">
+                <p className="text-[11px] text-neutral-450 leading-relaxed">
+                  Scan with <strong className="text-neutral-300">GPay, PhonePe, Paytm or BHIM</strong> to pay exactly
+                </p>
+                <p className="text-base font-black text-white font-mono select-none">
+                  ₹{totalInr} <span className="text-xs text-neutral-500 font-bold">INR</span>
+                </p>
+              </div>
 
-            <div className="flex items-center justify-center gap-2 py-1 select-none">
-              <ShieldCheck className="text-emerald-400 w-4 h-4" />
-              <span className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Afreed Glory Server Network Gateway</span>
+              <div className="flex items-center justify-center gap-2 py-1 select-none">
+                <ShieldCheck className="text-emerald-400 w-4 h-4" />
+                <span className="text-[9px] font-bold text-neutral-550 uppercase tracking-widest leading-none">Afreed Glory Server Network Gateway</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="text-center space-y-5 w-full py-6 animate-fade-in">
+              <div className="flex justify-center items-center gap-1.5 text-[10px] font-bold text-red-400 uppercase tracking-widest select-none">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                QR Scanner Offline
+              </div>
+
+              <div className="w-24 h-24 bg-neutral-900 border border-neutral-850 rounded-3xl flex items-center justify-center mx-auto text-neutral-600 shadow-inner">
+                <ShieldCheck size={36} className="text-neutral-650 strike-[1] animate-pulse" />
+              </div>
+
+              <div className="space-y-2 bg-neutral-900 border border-neutral-850 p-4 rounded-2xl text-center">
+                <p className="text-[11px] text-neutral-200 leading-relaxed font-sans font-bold">
+                  UPI QR Scanner is <span className="text-red-400">Not Available</span>
+                </p>
+                <p className="text-[10px] text-neutral-500 leading-relaxed">
+                  Please copy the UPI VPA ID on the left and dispatch payments directly from your UPI App (GPay, PhonePe, Paytm).
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 py-1 select-none">
+                <ShieldCheck className="text-red-500/55 w-4 h-4" />
+                <span className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest leading-none">Manual Account Transfer Active</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

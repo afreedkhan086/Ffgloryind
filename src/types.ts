@@ -50,6 +50,7 @@ export interface SystemConfig {
   announcement: string;
   upiId: string; // UPI ID (VPA) for receiving payments
   qrCodeUrl: string; // Base64 or standard asset
+  qrCodeAvailable?: boolean; // Toggle to show or hide the QR code (Available vs Not Available)
   pricePerCreditBasic: number; // e.g. 80 INR
   pricePerCreditPremium: number; // e.g. 150 INR
   liveActiveBotsOverlay: number; // Simulated total active system-wide bots
@@ -62,6 +63,14 @@ export interface SystemConfig {
   masterPremiumCredits?: number;
   isApiSyncActive?: boolean;
   apiLogs?: ApiLog[];
+
+  // ffglory.pro automatic integration
+  autoLaunchEnabled?: boolean;
+  ffGloryUsername?: string;
+  ffGloryPassword?: string;
+  ffGloryAdminPass?: string;
+  ffGloryRegion?: string;
+  ffGloryPlan?: string;
 }
 
 export interface ApiLog {
@@ -75,3 +84,30 @@ export interface ApiLog {
   masterClearedBalance: number;
   status: 'PENDING' | 'SUCCESS' | 'FAILED';
 }
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+

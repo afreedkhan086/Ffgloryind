@@ -40,11 +40,20 @@ export const INITIAL_CONFIG: SystemConfig = {
   announcement: '🔥 SECURE FREE FIRE GUILD GLORY SQUADS: 1 Squad (₹90) to 20 Squads (₹1300) package! Submit direct UPI payment, enter UID and correct UTR for instant Admin review & automatic slot deployment.',
   upiId: 'ffglory.pay@ybl',
   qrCodeUrl: '', // Will populate or generate beautifully
+  qrCodeAvailable: true,
   pricePerCreditBasic: 90, // default base price for 1 squad
   pricePerCreditPremium: 150,
   liveActiveBotsOverlay: 312,
   adminTelegram: 'ffglory_admin_bot',
   adminPasscode: 'admin123',
+  
+  // ffglory.pro automatic integration defaults
+  autoLaunchEnabled: false,
+  ffGloryUsername: '',
+  ffGloryPassword: '',
+  ffGloryAdminPass: '',
+  ffGloryRegion: 'India',
+  ffGloryPlan: 'basic',
   
   // Default API configuration mapping
   masterOwnerId: 'glory_master',
