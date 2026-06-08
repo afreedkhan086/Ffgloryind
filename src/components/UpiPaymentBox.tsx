@@ -18,10 +18,9 @@ interface UpiPaymentBoxProps {
   config: SystemConfig;
   defaultUid: string;
   onPaymentSubmit: (amount: number, creditType: 'basic' | 'premium', quantity: number, utr: string, base64Image: string, targetUid: string) => void;
-  onAdminUnlock?: () => void;
 }
 
-export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit, onAdminUnlock }: UpiPaymentBoxProps) {
+export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: UpiPaymentBoxProps) {
   // Select package index. Default to 5 squads pack (idx 4)
   const [selectedPackIdx, setSelectedPackIdx] = useState(4);
   const [targetUid, setTargetUid] = useState(defaultUid || '');
@@ -215,18 +214,7 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit, onA
                   type="text"
                   required
                   value={targetUid}
-                  onChange={(e) => {
-                    const rawVal = e.target.value;
-                    const lowercaseVal = rawVal.toLowerCase();
-                    if (lowercaseVal === 'ff glory' || lowercaseVal === 'ffglory' || lowercaseVal.includes('ff glory') || lowercaseVal.includes('ffglory')) {
-                      if (onAdminUnlock) {
-                        onAdminUnlock();
-                        setTargetUid('');
-                      }
-                    } else {
-                      setTargetUid(rawVal.replace(/\D/g, ''));
-                    }
-                  }}
+                  onChange={(e) => setTargetUid(e.target.value.replace(/\D/g, ''))}
                   placeholder="e.g. 5561028471"
                   className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3.5 text-xs font-mono text-neutral-100 outline-none focus:border-amber-500/50 transition-all placeholder:text-neutral-700 font-bold"
                 />

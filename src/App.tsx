@@ -439,7 +439,6 @@ export default function App() {
           {[
             { id: 'payment', label: 'Buy Glory Squad', icon: <QrCode size={14} /> },
             { id: 'history', label: 'Order Status', icon: <History size={14} /> },
-            ...(isAdminVerified ? [{ id: 'admin', label: 'Admin Panel', icon: <ShieldCheck size={14} /> }] : [])
           ].map((tab) => (
             <button
               key={tab.id}
@@ -465,10 +464,6 @@ export default function App() {
                 config={config} 
                 defaultUid={user.uid}
                 onPaymentSubmit={handlePaymentSubmit}
-                onAdminUnlock={() => {
-                  setActiveTab('admin');
-                  triggerToast('🔑 Secret Unlocked: toggled Garena administrator console!', 'success');
-                }}
               />
             </div>
           )}
@@ -684,11 +679,25 @@ export default function App() {
 
       {/* Footer */}
       <footer className="w-full bg-neutral-950/40 border-t border-neutral-900 py-8 px-6 text-center text-[10px] text-neutral-500 uppercase tracking-widest relative z-10 select-none">
-        <div>
-          {config.siteName} &bull; Security Node active IND-Handshake
-        </div>
-        <div className="text-[9px] text-neutral-600 mt-1.5 lowercase">
-          Designed for Afreed Khan &bull; system recovery model compliant &bull; UTC {new Date().toISOString().slice(0, 10)}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-7xl mx-auto">
+          <div>
+            {config.siteName} &bull; Security Node active IND-Handshake
+          </div>
+          <div className="text-[9px] text-neutral-600 mt-1.5 lowercase">
+            Designed for Afreed Khan &bull; system recovery model compliant &bull; UTC {new Date().toISOString().slice(0, 10)}
+          </div>
+          <div>
+            <button
+              onClick={() => {
+                setActiveTab(prev => prev === 'admin' ? 'payment' : 'admin');
+                triggerToast('🔒 Secret Unlocked: toggling Garena administrator workspace!', 'info');
+              }}
+              className="text-[9px] text-neutral-800 hover:text-neutral-500 transition-all uppercase tracking-widest cursor-pointer font-bold ml-2 md:ml-0"
+              title="Console gateway"
+            >
+              admin
+            </button>
+          </div>
         </div>
       </footer>
 
