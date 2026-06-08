@@ -1,0 +1,6 @@
+{
+  "name": "FFGlory Pro India Portal",
+  "description": "Premium Garena Free Fire glory farming guild dashboard tailored for India, with deep UPI QR matching codes, UTR checks, and admin controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
