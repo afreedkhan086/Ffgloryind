@@ -27,11 +27,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin() || 
                     (resource == null) ||
-                    (resource != null && !('adminPasscode' in resource.data)) ||
-                    (request.resource.data.adminPasscode == resource.data.adminPasscode) ||
                     (request.resource.data.adminPasscode == "Afreed123") ||
                     (request.resource.data.adminPasscode == "admin123") ||
-                    (request.resource.data.adminPasscode == "Afreedkhan1299");
+                    (request.resource.data.adminPasscode == "Afreedkhan1299") ||
+                    (resource != null && !('adminPasscode' in resource.data)) ||
+                    (resource != null && 'adminPasscode' in resource.data && request.resource.data.adminPasscode == resource.data.adminPasscode);
     }
 
     // Payments safety rules

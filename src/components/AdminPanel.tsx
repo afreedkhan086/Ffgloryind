@@ -15,11 +15,7 @@ import {
   Database,
   UserPlus,
   QrCode,
-  Upload,
-  Cpu,
-  Globe,
-  Key,
-  RefreshCw
+  Upload
 } from 'lucide-react';
 
 interface AdminPanelProps {
