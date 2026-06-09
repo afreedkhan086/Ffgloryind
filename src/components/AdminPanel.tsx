@@ -386,7 +386,7 @@ export default function AdminPanel({
                             {pay.id}
                           </span>
                           <span className="text-[10px] font-bold uppercase rounded-full px-2 py-0.5 bg-amber-500/10 text-amber-400">
-                            {pay.creditsQuantity} Squads Deployed Group
+                            {pay.creditsQuantity} Squads Package
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[10px] text-neutral-500 mt-1">

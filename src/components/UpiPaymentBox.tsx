@@ -228,8 +228,8 @@ export default function UpiPaymentBox({ config, defaultUid, onPaymentSubmit }: U
 
               {/* UID Field */}
               <div className={`space-y-1 ${config.isLive === false ? 'opacity-40 pointer-events-none' : ''}`}>
-                <label className="text-[10px] uppercase font-semibold text-neutral-450 tracking-wider flex items-center gap-1">
-                  <Globe size={11} className="text-neutral-500" /> FREE FIRE GUILD / PLAYER UID (Target for Squads)
+                <label className="text-[10px] uppercase font-bold text-neutral-450 tracking-wider flex items-center gap-1">
+                  <Globe size={11} className="text-neutral-500" /> ENTER YOUR GUILD UID
                 </label>
                 <input
                   id="target-squad-uid"

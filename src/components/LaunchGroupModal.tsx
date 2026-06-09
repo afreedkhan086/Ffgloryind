@@ -102,7 +102,7 @@ export default function LaunchGroupModal({ isOpen, onClose, user, onLaunch }: La
           {/* Clan ID / UID */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-semibold text-neutral-400 uppercase tracking-wider block">Clan ID / Free Fire UID</label>
+              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider block">ENTER YOUR GUILD UID</label>
               <span className="text-[10px] text-neutral-500 font-mono">Example: 3046378316</span>
             </div>
             <input
@@ -181,7 +181,7 @@ export default function LaunchGroupModal({ isOpen, onClose, user, onLaunch }: La
             }`}
           >
             {isBalanceSufficient 
-              ? `LAUNCH NEW GROUP VIA ${creditTypeNeeded.toUpperCase()}` 
+              ? `LAUNCH GLORY BOT VIA ${creditTypeNeeded.toUpperCase()}` 
               : `INSUFFICIENT ${creditTypeNeeded.toUpperCase()} CREDITS (NEED ${cost})`}
           </button>
         </form>
