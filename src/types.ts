@@ -21,6 +21,7 @@ export interface PaymentRequest {
   timestamp: string;
   proofImage?: string; // Base64 uploaded screenshot
   adminComment?: string;
+  adminPasscode?: string; // Optional passcode to verify offline updates
 }
 
 export type GroupStatus = 'running' | 'stopped' | 'paused';

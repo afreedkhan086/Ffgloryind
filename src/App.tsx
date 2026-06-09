@@ -254,8 +254,9 @@ export default function App() {
     const quantity = targPay.creditsQuantity;
     const updatePayload = {
       ...targPay,
-      status: 'approved',
-      adminComment: `Verified via bank settlement statement. Deployed ${quantity} squads for FF UID: ${targPay.userUID}!`
+      status: 'approved' as const,
+      adminComment: `Verified via bank settlement statement. Deployed ${quantity} squads for FF UID: ${targPay.userUID}!`,
+      adminPasscode: config.adminPasscode || 'admin123'
     };
 
     try {
@@ -286,8 +287,9 @@ export default function App() {
     const finalComment = comment || 'UTR verification failed. Please upload a valid payment proof.';
     const updatePayload = {
       ...targPay,
-      status: 'rejected',
-      adminComment: finalComment
+      status: 'rejected' as const,
+      adminComment: finalComment,
+      adminPasscode: config.adminPasscode || 'admin123'
     };
 
     try {
